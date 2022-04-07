@@ -10,9 +10,11 @@ MODEL = "albert_base_chinese_ner_0329"
 app = FastAPI()
 templates = Jinja2Templates(directory="./app/templates")
 
+
 class Input(BaseModel):
     id: int
     sentence: str
+
 
 class Result(BaseModel):
     entity_group: str
@@ -21,23 +23,25 @@ class Result(BaseModel):
     start: int
     end: int
 
-class Result_Output(BaseModel):
+
+class ResultOutput(BaseModel):
     id: int
     content: List[Result]
 
+
 class Output(BaseModel):
-    result: List[Result_Output]
+    result: List[ResultOutput]
 
 
-@app.post("/", response_model=Output)
+@app.post("/api/ner", response_model=Output)
 def result(input: List[Input]):
 
     result = []
     for data in input:
-        temp = {"id":data.id}
+        temp = {"id": data.id}
         content = data.sentence
-        content = content.replace(" ","[MASK]")    
-        document = pred_result(TOKEN, MODEL, content)
+        document = content.replace(" ", "[MASK]")
+        document = pred_result(TOKEN, MODEL, document)
         temp["content"] = document
         result.append(temp)
 
@@ -49,8 +53,9 @@ def result(input: List[Input]):
 def read_root(request: Request, content="", result=""):
 
     if content != "":
-        content = content.replace(" ","[MASK]")
-        result = pred_result(TOKEN, MODEL, content)
+        document = content.replace(" ", "[MASK]")
+        document = content.replace("　", "[MASK]")
+        result = get_result(TOKEN, MODEL, document)
 
     response = {
         "request": request,

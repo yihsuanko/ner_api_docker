@@ -24,7 +24,7 @@ def pred_result(token,model, word):
     model = AutoModelForTokenClassification.from_pretrained(model)
 
     nlp = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple") #ignore_labels=[""]
-    nlp2 = pipeline("ner", model=model, tokenizer=tokenizer,ignore_labels=[""])
+    # nlp2 = pipeline("ner", model=model, tokenizer=tokenizer,ignore_labels=[""])
 
     ner_results = nlp(word)
     for data in ner_results:
@@ -34,11 +34,27 @@ def pred_result(token,model, word):
         temp = data["word"].replace(" ", "")
         temp = temp.replace("[MASK]", " ")
         data["word"] = temp
-    # print(ner_results)
 
     # ner_results = nlp2(word)
     # result = predict(word, ner_results)
     
+    return ner_results
+
+def get_result(token,model, word):
+    tokenizer = AutoTokenizer.from_pretrained(token)
+    model = AutoModelForTokenClassification.from_pretrained(model)
+
+    nlp = pipeline("ner", model=model, tokenizer=tokenizer,ignore_labels=[""], aggregation_strategy="simple")
+
+    ner_results = nlp(word)
+    for data in ner_results:
+        if isinstance(data["word"], list):
+            data["word"] = "".join(data["word"])
+
+        temp = data["word"].replace(" ", "")
+        temp = temp.replace("[MASK]", " ")
+        data["word"] = temp
+
     return ner_results
 
 if __name__ == '__main__':
@@ -47,7 +63,6 @@ if __name__ == '__main__':
     token = "albert_base_chinese_ner_0329"
     model = "albert_base_chinese_ner_0329"
 
-    # test_file = './train_data/test_file.json'
     word = "台東地檢署 21日指揮警方前往張靜的事務所及黃姓女友所經營的按摩店進行搜索"
     word = word.replace(" ","[MASK]")
     result = pred_result(token, model, word)

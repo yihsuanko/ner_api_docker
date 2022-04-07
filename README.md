@@ -31,32 +31,129 @@
     - PUT: to update data.
     - DELETE: to delete data.
 
-- get api
+#### get api
+- URL:`/`
+- method:`get`
+- Headers:
+    - `Content-Type`: `text/html; charset=utf-8`
+- code:
 ```python
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends, BackgroundTasks
+from fastapi.templating import Jinja2Templates
+from app.ner_predict import *
 
 app = FastAPI()
-
+templates = Jinja2Templates(directory="./app/templates")
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+def read_root(request: Request, content="", result=""):
+
+    if content != "":
+        document = content.replace(" ", "[MASK]")
+        document = content.replace("　", "[MASK]")
+        result = get_result(TOKEN, MODEL, document)
+
+    response = {
+        "request": request,
+        "content": content,
+        "result": result,
+    }
+    return templates.TemplateResponse("home.html", response)
 ```
-- post api
+
+#### post api
+- URL: `/api/ner`
+- Method: `POST`
+- Headers:
+    - `Content-Type`: `application/json`
+    - `accept`: `application/json`
+- Example Request Body:
+    ```
+    [
+        {
+            "id": 0,
+            "sentence": "三峽親友及校園案40例最多"
+        }
+    ]
+    ```
+- Example Request:
+    ```
+    curl -X 'POST' \
+        'http://127.0.0.1:8000/api/ner' \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d '[
+        {
+            "id": 0,
+            "sentence": "三峽親友及校園案40例最多"
+        }
+    ]'
+    ```
+- Example Succcess Response:
+```
+    {
+        "result": [
+            {
+            "id": 0,
+            "content": [
+                {
+                "entity_group": "ORG",
+                "score": 0.9293190240859985,
+                "word": "三峽",
+                "start": 0,
+                "end": 2
+                }
+            ]
+            }
+        ]
+    }
+```
+- code:
 ```python
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from app.ner_predict import *
 from pydantic import BaseModel
 
-class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-    tax: Optional[float] = None
+TOKEN = "albert_base_chinese_ner_0329"
+MODEL = "albert_base_chinese_ner_0329"
 
 app = FastAPI()
 
-@app.post("/items/")
-async def create_item(item: Item):
-    return item
+class Input(BaseModel):
+    id: int
+    sentence: str
+
+
+class Result(BaseModel):
+    entity_group: str
+    score: float
+    word: str
+    start: int
+    end: int
+
+
+class ResultOutput(BaseModel):
+    id: int
+    content: List[Result]
+
+
+class Output(BaseModel):
+    result: List[ResultOutput]
+
+
+@app.post("/api/ner", response_model=Output)
+def result(input: List[Input]):
+
+    result = []
+    for data in input:
+        temp = {"id": data.id}
+        content = data.sentence
+        document = content.replace(" ", "[MASK]")
+        document = pred_result(TOKEN, MODEL, document)
+        temp["content"] = document
+        result.append(temp)
+
+    print(result)
+    return {"result": result}
 ```
 
 ### [postman](https://www.postman.com/)
@@ -124,8 +221,10 @@ ner_results = nlp(word)
 
     ```
     4. Docker build<br>
-    `docker build -t myimage .`
+    `docker build -t name:tag .`
+    `docker build -t yihsuan-ner-api:3.9v1 .`
     5. Docker run<br>
     `docker run -d --name mycontainer -p 80:80 myimage`
+    `docker run -d --name yihsuan-api -p 80:80 yihsuan-ner-api:3.9v1`
 
     

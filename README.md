@@ -221,10 +221,10 @@ ner_results = nlp(word)
 
     ```
     4. Docker build<br>
-    `docker build -t name:tag .`
+    `docker build -t name:tag .`<br>
     `docker build -t yihsuan-ner-api:3.9v1 .`
     5. Docker run<br>
-    `docker run -d --name mycontainer -p 80:80 myimage`
+    `docker run -d --name mycontainer -p 80:80 myimage`<br>
     `docker run -d --name yihsuan-api -p 80:80 yihsuan-ner-api:3.9v1`
 
     
